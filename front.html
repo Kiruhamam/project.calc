@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arithmetic Expression Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+<h1>Arithmetic Expression Calculator</h1>
+<form id="expressionForm">
+    <label for="expressionInput">Enter an arithmetic expression:</label><br>
+    <input type="text" id="expressionInput" name="expression"><br>
+    <button type="button" onclick="calculateExpression()">Calculate</button>
+</form>
+<div id="result"></div>
+
+<script>
+    function calculateExpression() {
+        const expression = document.getElementById('expressionInput').value;
+        fetchExpressionResult(expression);
+    }
+
+    function fetchExpressionResult(expression) {
+        const resultDiv = document.getElementById('result');
+        // Используйте относительный URL, чтобы избежать проблем с CORS
+        fetch('http://localhost:8080/addtask?expression=' + encodeURIComponent(expression))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to add task');
+                }
+                return response.text();
+            })
+            .then(taskId => {
+                resultDiv.textContent = `Task ID: ${taskId}. Waiting for result...`;
+                pollForResult(taskId);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultDiv.textContent = 'Error: Failed to add task';
+            });
+    }
+
+    function pollForResult(taskId) {
+        const resultDiv = document.getElementById('result');
+        const intervalId = setInterval(function() {
+            fetch(`/gettask?agentname=demon`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to get task');
+                    }
+                    return response.json();
+                })
+                .then(task => {
+                    if (task && task.Status === 3) {
+                        clearInterval(intervalId);
+                        resultDiv.textContent = `Result: ${task.Result}`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    clearInterval(intervalId);
+                    resultDiv.textContent = 'Error: Failed to get result';
+                });
+        }, 3000);
+    }
+</script>
+</body>
